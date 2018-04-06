@@ -4,7 +4,7 @@
 bool Feature::isInEmptyCell()const
 {
 
-	return image->qt[(int)y][(int)x].empty() && image->qf[(int)y][(int)x].empty();
+	return image->qt[floor(y/2)][floor(x/2)].empty() && image->qf[floor(y/2)][floor(x/2)].empty();
 }
 Mat Feature::toHomogeneous()const
 {

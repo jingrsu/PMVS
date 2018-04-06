@@ -15,6 +15,7 @@ public:
 	PMVS(const string&fileName, const string&imageDir);
 	void seed();
 	void expand();
+	void filter();
 	void savePatches(const string& fileName);
 	
 
@@ -22,6 +23,8 @@ private:
 	vector<Image> images;
 	vector<PPatch> patches;
 	void loadImages(const string&fileName, const string&imageDir);
+	void findNeighbors(Patch p, vector<pair<int, pair<int, int>>>& cells);
+	void findNeighbors8(Patch p, vector<PPatch>& patches);
 };
 
 #endif // !PMVS_H

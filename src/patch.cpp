@@ -35,6 +35,47 @@ void Patch::updateImage(double alpha1, double alpha2)
 	}
 }
 
+void Patch::updateImage()
+{
+	simages.clear();
+	for (Image*timage:timages)
+	{
+		simages.push_back(timage);
+	}
+	timages.clear();
+	for (Image*nimage:rimage->nimages)
+	{
+		if (isInTheImage(nimage))
+		{
+			int std = 0;
+			for (Image*simage:simages)
+			{
+				if (simage == nimage)
+					std = 1;
+			}
+			if(!std)
+				simages.push_back(nimage);
+		}
+			
+	}
+
+	Tex pTex1;
+	Mat_<double> pxaxis(4, 1), pyaxis(4, 1);
+	getPAxes(pxaxis, pyaxis);
+	rimage->grabTex(center, pxaxis, pyaxis, pTex1);
+
+	for (Image *simage : simages)
+	{
+		Tex pTex2;
+		simage->grabTex(center, pxaxis, pyaxis, pTex2);
+		double v = pTex1.ncc(pTex2);
+		if (v > 0.7)
+		{
+			timages.push_back(simage);
+		}
+	}
+}
+
 void Patch::encode(double &depth, double &alpha, double &beta)const
 {
 	//detph：patch中心到相机的距离
@@ -135,7 +176,7 @@ double optimizeFun(const vector<double> &x, vector<double> &grad, void *fdata)
 	Patch *oldP = (Patch*)fdata;
 	p.timages = oldP->timages;
 	p.rimage = oldP->rimage;
-	p.ray = p.ray;
+	p.ray = oldP->ray;
 	p.decode(x[0], x[1], x[2]);
 	return p.averageCost();
 
@@ -161,6 +202,7 @@ void Patch::optimze()
 	x[0] = depth;
 	x[1] = alpha;
 	x[2] = beta;
+	//cout << "before: " << x[0] << " " << x[1] << " " << x[2] << endl;
 	opt.set_lower_bounds(lb);
 	opt.set_upper_bounds(ub);
 	bool success = false;
@@ -179,34 +221,34 @@ void Patch::optimze()
 	}
 	if (success) {
 		decode(x[0], x[1], x[2]);
+		//cout << "after: " << x[0] << " " << x[1] << " " << x[2] << endl;
 	}
 
 }
 
 void Patch::updateImageCell(int pid)
 {
-	Tex pTex1;
-	Mat_<double> pxaxis(4, 1), pyaxis(4, 1);
-	getPAxes(pxaxis, pyaxis);
-	rimage->grabTex(center, pxaxis, pyaxis, pTex1);
-	pTex1.updateCell(pid, rimage->qt);
-	//    for(Image *nimage:rimage->nimages)
-	//    {
-	//        if(find(timages.begin(), timages.end(), nimage)!=timages.end())
-	//        {
-	//            
-	//            Tex pTex2;
-	//            nimage->grabTex(center,pxaxis,pyaxis,pTex2);
-	//            pTex2.updateCell(pid, nimage->qt);
-	//            
-	//        }else if(find(simages.begin(), simages.end(), nimage)!=simages.end()){
-	//            
-	//            Tex pTex2;
-	//            nimage->grabTex(center,pxaxis,pyaxis,pTex2);
-	//            pTex2.updateCell(pid, nimage->qf);
-	//        }
-	//        
-	//    }
+	Mat_<double> point3D(3, 1);
+	for (Image* simage:simages)
+	{
+		point3D = simage->project(center);
+		int x = floor(point3D(0, 0) / 2);
+		int y = floor(point3D(1, 0) / 2);
+		assert(y < ceil(simage->data.rows / 2.0) && y >= 0);
+		assert(x < ceil(simage->data.cols / 2.0) && x >= 0);
+		simage->qf[y][x].insert(pid);
+		qs.push_back(make_pair(simage->id,make_pair(x, y)));
+	}
+	for (Image* timage : timages)
+	{
+		point3D = timage->project(center);
+		int x = floor(point3D(0, 0) / 2);
+		int y = floor(point3D(1, 0) / 2);
+		assert(y < ceil(timage->data.rows / 2.0) && y >= 0);
+		assert(x < ceil(timage->data.cols / 2.0) && x >= 0);
+		timage->qt[y][x].insert(pid);
+		qt.push_back(make_pair(timage->id, make_pair(x, y)));
+	}
 }
 
 bool Patch::isInTheImage(Image* image)
@@ -215,6 +257,23 @@ bool Patch::isInTheImage(Image* image)
 	v = image->cameraCenter - center;
 	double ret = v.dot(normal) / (norm(v)*norm(normal));
 	if (ret > 0.0)
+		return true;
+	return false;
+}
+
+bool Patch::isNeighborPatch(Patch&p)
+{
+	Mat_<double> midPoint(4, 1);
+	midPoint = center + p.center;
+	midPoint /= 2;
+	Mat_<double> tmp(3, 1);
+	midPoint.rowRange(0, 3).copyTo(tmp);
+	tmp = rimage->rmat*tmp + rimage->tmat;
+	float threshold = 2 * tmp(2, 0) / rimage->kmat.at<double>(0, 0);
+	Mat v = center - p.center;
+	float a = norm(v.dot(normal));
+	float b = norm(v.dot(p.normal));
+	if ((a + b) < 2 * threshold)
 		return true;
 	return false;
 }

@@ -4,10 +4,13 @@ using namespace std;
 
 int main()
 {
-	PMVS pmvs("../images/imagesparameters.txt", "../images");
+	PMVS pmvs("../images/imagesParameters.txt", "../images");
 
 	pmvs.seed();
-	pmvs.savePatches("a.ply");
+	pmvs.expand();
+	//pmvs.filter();
+	//pmvs.expand();
+	pmvs.savePatches("b.ply");
 
 	system("pause");
 }

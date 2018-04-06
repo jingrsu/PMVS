@@ -50,6 +50,31 @@ namespace utils {
 		x.at<double>(2, 0) = 1;
 		line = (p2*c1).cross(p2*pinvP1*x);
 	}
+	inline Mat CalPlaneLineIntersectPoint(Mat_<double>&planeVector, Mat_<double>&planePoint, Mat_<double>&lineVector, Mat_<double>&linePoint)
+	{
+		double vp1, vp2, vp3, n1, n2, n3, v1, v2, v3, m1, m2, m3, t, vpt;
+		vp1 = planeVector(0, 0);
+		vp2 = planeVector(1, 0);
+		vp3 = planeVector(2, 0);
+		n1 = planePoint(0, 0);
+		n2 = planePoint(1, 0);
+		n3 = planePoint(2, 0);
+		v1 = lineVector(0, 0);
+		v2 = lineVector(1, 0);
+		v3 = lineVector(2, 0);
+		m1 = linePoint(0, 0);
+		m2 = linePoint(1, 0);
+		m3 = linePoint(2, 0);
+		vpt = v1 * vp1 + v2 * vp2 + v3 * vp3;
+		assert(fabs(vpt) > 1e-6);
+		t = ((n1 - m1) * vp1 + (n2 - m2) * vp2 + (n3 - m3) * vp3) / vpt;
+		Mat_<double> ret(4, 1);
+		ret(0, 0) = m1 + v1 * t;
+		ret(1, 0) = m2 + v2 * t;
+		ret(2, 0) = m3 + v3 * t;
+		ret(3, 0) = 1;
+		return ret;
+	}
 }
 
 

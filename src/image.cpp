@@ -16,8 +16,8 @@ Image::Image(const string& fileName, int i, const Mat_<double>& k, const Mat_<do
 	Mat_<double> c = -rmat.inv() * tmat;
 	Mat hc = (Mat_<double>(4, 1) << c(0, 0), c(1, 0), c(2, 0), 1);
 	cameraCenter = hc;
-	qf.resize(row - 1, vector<set<int>>(col - 1));
-	qt.resize(row - 1, vector<set<int>>(col - 1));
+	qf.resize(ceil(row / 2.0), vector<set<int>>(ceil(col / 2.0)));
+	qt.resize(ceil(row / 2.0), vector<set<int>>(ceil(col / 2.0)));
 	depth.resize(row - 1, vector<int>(col - 1, -1));
 	Mat_<double> xaxis_(4, 1), yaxis_(4, 1), zaxis_(4, 1);
 	xaxis_ = rt(0, 0);
@@ -43,7 +43,6 @@ void Image::detectFeatures()
 	Mat dst;
 	cvtColor(data, dst, cv::COLOR_BGR2GRAY);
 	goodFeaturesToTrack(dst, corners, 500, 0.02, 10);
-	cout << corners.size() << endl;
 	for (size_t i = 0; i < corners.size(); i++)
 	{
 		Feature f;
@@ -52,7 +51,6 @@ void Image::detectFeatures()
 		f.y = corners[i].y;
 		features.push_back(f);
 	}
-	cout << features.size() << endl;
 }
 
 double Image::getDistanceToCameraCenter(const Mat &point)
